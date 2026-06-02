@@ -1,0 +1,10 @@
+services:
+  ui:
+    build: .
+    image: jetfighter-evaluation
+    command: ["ui", "--port", "8501"]
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./dataset:/app/evaluation/dataset:ro
+      - ./results:/app/evaluation/results
