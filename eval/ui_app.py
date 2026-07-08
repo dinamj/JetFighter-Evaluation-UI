@@ -164,6 +164,9 @@ def parse_args() -> argparse.Namespace:
         argv = argv[argv.index("--") + 1:]
     parser = argparse.ArgumentParser()
     parser.add_argument("--eval-root", type=Path, default=EVAL_ROOT)
+    parser.add_argument("--dataset", default="dataset",
+                        help="Dataset folder under eval-root (default: dataset). "
+                             "e.g. --dataset ishihara_dataset for the Ishihara set.")
     return parser.parse_args(argv)
 
 
@@ -247,9 +250,13 @@ def first_pending(df: pd.DataFrame, completed: dict[str, dict]) -> int:
 
 def main() -> None:
     args = parse_args()
-    dataset_dir = (args.eval_root / "dataset").resolve()
+    dataset_dir = (args.eval_root / args.dataset).resolve()
     manifest_csv = dataset_dir / "manifest.csv"
-    results_csv = (args.eval_root / "results" / "ground_truth.csv").resolve()
+    # A non-default dataset writes its own ground-truth file so it never touches
+    # the main results/ground_truth.csv.
+    gt_name = ("ground_truth.csv" if args.dataset == "dataset"
+               else f"ground_truth_{Path(args.dataset).name}.csv")
+    results_csv = (args.eval_root / "results" / gt_name).resolve()
 
     st.set_page_config(page_title="JetFighter Validation", layout="wide")
     st.title("JetFighter Evaluation")
