@@ -8,3 +8,14 @@ services:
     volumes:
       - ./dataset:/app/evaluation/dataset:ro
       - ./results:/app/evaluation/results
+
+  # Labels the Ishihara datase instead of the main dataset
+  ui-ishihara:
+    build: .
+    image: jetfighter-evaluation
+    command: ["ui", "--port", "8501", "--dataset", "ishihara_dataset"]
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./ishihara_dataset:/app/evaluation/ishihara_dataset:ro
+      - ./results:/app/evaluation/results
