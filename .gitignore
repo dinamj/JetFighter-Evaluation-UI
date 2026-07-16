@@ -1,3 +1,10 @@
 __pycache__/
 *.pyc
 .DS_Store
+
+# lokale Rohquellen / Analyse-Reste (nicht pushen)
+ishihara-tests-for-color-deficiency-hires-v1.0.0/
+ishihara_huemanity_dataset/
+_*.json
+_*_cache.json
+v2_eval/*_cache.json
