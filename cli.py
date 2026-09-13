@@ -30,22 +30,24 @@ def build_parser() -> argparse.ArgumentParser:
                       help="Dataset folder to label (default: dataset; "
                            "e.g. ishihara_dataset)")
 
-    sub.add_parser("metrics", help="Compute pipeline-vs-human metrics")
-    sub.add_parser("report", help="Render results/report.html")
+    p_metrics = sub.add_parser("metrics", help="Compute pipeline-vs-human metrics")
+    p_metrics.add_argument("--dataset", default="dataset",
+                           help="Dataset folder used for the human labels")
+    p_report = sub.add_parser("report", help="Render the evaluation report")
+    p_report.add_argument("--dataset", default="dataset",
+                          help="Dataset folder used for the human labels")
     return p
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    cfg = config.load()
-
     if args.command == "ui":
         return cmd_ui(args.port, args.dataset)
     if args.command == "metrics":
-        compute_metrics.compute(cfg)
+        compute_metrics.compute(config.load(dataset=args.dataset))
         return 0
     if args.command == "report":
-        report.generate(cfg)
+        report.generate(config.load(dataset=args.dataset))
         return 0
     return 2
 

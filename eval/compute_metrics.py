@@ -347,12 +347,12 @@ def compute(cfg: EvalConfig, *, quiet: bool = False) -> Path:
     }
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    (RESULTS_DIR / "metrics.json").write_text(json.dumps(metrics, indent=2), encoding="utf-8")
-    (RESULTS_DIR / "metrics_report.txt").write_text(_fmt(metrics), encoding="utf-8")
+    cfg.metrics_path.write_text(json.dumps(metrics, indent=2), encoding="utf-8")
+    cfg.metrics_report_path.write_text(_fmt(metrics), encoding="utf-8")
     if not quiet:
         print(_fmt(metrics))
-        print(f"[metrics] {RESULTS_DIR / 'metrics.json'}")
-    return RESULTS_DIR / "metrics.json"
+        print(f"[metrics] {cfg.metrics_path}")
+    return cfg.metrics_path
 
 
 if __name__ == "__main__":

@@ -14,7 +14,7 @@ from typing import Any
 import cv2
 import pandas as pd
 
-from .config import DATASET_DIR, EvalConfig, RESULTS_DIR
+from .config import EvalConfig, RESULTS_DIR
 from .schemas import normalize_label
 
 
@@ -80,9 +80,9 @@ def _gallery(cfg: EvalConfig, cap: int = 24) -> list[dict[str, Any]]:
 ### PUBLIC
 
 def generate(cfg: EvalConfig, *, quiet: bool = False) -> dict[str, Path]:
-    metrics_json = RESULTS_DIR / "metrics.json"
+    metrics_json = cfg.metrics_path
     if not metrics_json.exists():
-        raise FileNotFoundError("missing metrics.json - run `evaluation metrics` first.")
+        raise FileNotFoundError(f"missing {metrics_json.name} - run `evaluation metrics` first.")
     metrics = json.loads(metrics_json.read_text(encoding="utf-8"))
     g = metrics["global"]
     d, c, a = g["detection"], g["classification"], g["accessibility"]
@@ -140,7 +140,7 @@ def generate(cfg: EvalConfig, *, quiet: bool = False) -> dict[str, Path]:
     if examples:
         parts.append("<h2>Confusing crops</h2><div class='gallery'>")
         for ex in examples:
-            b64 = _thumb_b64(DATASET_DIR / ex["image_path"]) if ex["image_path"] else None
+            b64 = _thumb_b64(cfg.dataset_dir / ex["image_path"]) if ex["image_path"] else None
             img = (f'<img src="data:image/jpeg;base64,{b64}"/>' if b64
                    else '<div style="height:120px;background:#eee"></div>')
             parts.append(f"<div class='card'>{img}<div class='meta'>"
@@ -151,7 +151,7 @@ def generate(cfg: EvalConfig, *, quiet: bool = False) -> dict[str, Path]:
     parts.append("</body></html>")
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    html_path = RESULTS_DIR / "report.html"
+    html_path = cfg.report_path
     html_path.write_text("".join(parts), encoding="utf-8")
     if not quiet:
         print(f"[report] {html_path}")
