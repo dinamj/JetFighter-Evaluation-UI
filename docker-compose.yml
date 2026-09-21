@@ -6,7 +6,7 @@ services:
     ports:
       - "8501:8501"
     volumes:
-      - ./dataset:/app/evaluation/dataset:ro
+      - ./:/app/evaluation:ro
       - ./results:/app/evaluation/results
 
   # Labels the Ishihara datase instead of the main dataset
@@ -17,5 +17,5 @@ services:
     ports:
       - "8501:8501"
     volumes:
-      - ./ishihara_dataset:/app/evaluation/ishihara_dataset:ro
+      - ./:/app/evaluation:ro
       - ./results:/app/evaluation/results

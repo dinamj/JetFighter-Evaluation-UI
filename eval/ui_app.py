@@ -49,6 +49,7 @@ ACCESSIBILITY_CHOICES = [
 
 # Global action keys
 KEY_DUPLICATE = "D"
+KEY_SAME_PREVIOUS = "M"
 KEY_SUBMIT    = "↵"   # Enter
 KEY_PREVIOUS  = "←"   # ArrowLeft
 KEY_SKIP      = "→"   # ArrowRight
@@ -88,7 +89,7 @@ _KEYBOARD_JS = """
         'y': 'Y', 'n': 'N',
         'r': 'R', 's': 'S', 'c': 'C',
         'a': 'A', 'p': 'P',
-        'd': 'D'
+        'd': 'D', 'm': 'M'
     };
 
     parent.__jf_kb_handler = function(e) {
@@ -142,6 +143,7 @@ def render_shortcuts_legend() -> None:
 
 **Navigation (any step)**
 - `{KEY_DUPLICATE}`   Duplicate of previous
+- `{KEY_SAME_PREVIOUS}`   Same decision as previous
 - `Enter`  Submit & next
 - `←`  Previous
 - `→`  Skip
@@ -234,7 +236,8 @@ def reset_step_state() -> None:
         st.session_state[k] = v
 
 
-def goto_idx(new_idx: int, n_total: int) -> None:
+def goto_idx(new_idx: int, df: pd.DataFrame) -> None:
+    n_total = len(df)
     st.session_state.idx = max(0, min(n_total - 1, new_idx))
     reset_step_state()
 
@@ -294,13 +297,13 @@ def main() -> None:
         jump = st.number_input("Jump to #", min_value=1, max_value=n_total,
                                value=st.session_state.idx + 1, step=1)
         if jump - 1 != st.session_state.idx:
-            goto_idx(int(jump) - 1, n_total)
+            goto_idx(int(jump) - 1, df)
 
         skip_done = st.checkbox("Skip already-validated", value=True)
         if skip_done and df.iloc[st.session_state.idx]["atomic_id"] in completed:
             nxt = first_pending(df.iloc[st.session_state.idx + 1:], completed)
             if nxt > 0 or df.iloc[st.session_state.idx + 1:].iloc[0:1].shape[0]:
-                goto_idx(st.session_state.idx + 1 + nxt, n_total)
+                goto_idx(st.session_state.idx + 1 + nxt, df)
 
         st.divider()
         st.markdown("**Protocol**\n\n"
@@ -350,26 +353,45 @@ def main() -> None:
         st.caption("Grayscale simulation — BT.709 (right panel)")
         st.image(gray, use_column_width=True, clamp=True)
 
-    ### Duplicate-of-Previous shortcut
-    can_duplicate = (
+    ### Previous-image shortcuts
+    can_copy_previous = (
         st.session_state.idx > 0
         and str(df.iloc[st.session_state.idx - 1]["atomic_id"]) in completed
     )
-    if can_duplicate:
-        if st.button(f"📑 Duplicate of Previous ({KEY_DUPLICATE})", use_container_width=True):
-            prev_atomic = str(df.iloc[st.session_state.idx - 1]["atomic_id"])
-            prev = completed[prev_atomic]
-            out = _row_template(row)
-            out.update({
-                "is_figure":              prev.get("is_figure", ""),
-                "classification":         prev.get("classification", ""),
-                "accessibility":          prev.get("accessibility", ""),
-                "duplicate_of_previous":  "yes",
-            })
-            append_row(results_csv, out)
-            completed[atomic_id] = out
-            goto_idx(st.session_state.idx + 1, n_total)
-            st.rerun()
+    prev = None
+    if can_copy_previous:
+        prev_atomic = str(df.iloc[st.session_state.idx - 1]["atomic_id"])
+        prev = completed[prev_atomic]
+
+    st.subheader("Quick actions")
+    duplicate_col, same_col = st.columns(2)
+    duplicate_clicked = duplicate_col.button(
+        f"📑 Duplicate of previous ({KEY_DUPLICATE})",
+        use_container_width=True,
+        disabled=not can_copy_previous,
+        help="Copies the previous answers and marks this crop as a duplicate so it can be excluded from metrics.",
+    )
+    same_clicked = same_col.button(
+        f"↳ Same as previous ({KEY_SAME_PREVIOUS})",
+        use_container_width=True,
+        disabled=not can_copy_previous,
+        help="Copies the previous detection, classification, and accessibility answers without marking a duplicate.",
+    )
+    if not can_copy_previous:
+        st.caption("Available after the immediately preceding crop has been submitted.")
+
+    if duplicate_clicked or same_clicked:
+        out = _row_template(row)
+        out.update({
+            "is_figure":             prev.get("is_figure", ""),
+            "classification":        prev.get("classification", ""),
+            "accessibility":         prev.get("accessibility", ""),
+            "duplicate_of_previous": "yes" if duplicate_clicked else "no",
+        })
+        append_row(results_csv, out)
+        completed[atomic_id] = out
+        goto_idx(st.session_state.idx + 1, df)
+        st.rerun()
 
     st.divider()
 
@@ -461,7 +483,7 @@ def main() -> None:
 
     nav_l, nav_mid, nav_r = st.columns([1, 2, 1])
     if nav_l.button(f"⟵ Previous ({KEY_PREVIOUS})", use_container_width=True):
-        goto_idx(st.session_state.idx - 1, n_total)
+        goto_idx(st.session_state.idx - 1, df)
         st.rerun()
     if nav_mid.button(f"✔ Submit & next ⟶ ({KEY_SUBMIT})", type="primary",
                       disabled=not ready, use_container_width=True):
@@ -473,10 +495,10 @@ def main() -> None:
         })
         append_row(results_csv, out)
         completed[atomic_id] = out
-        goto_idx(st.session_state.idx + 1, n_total)
+        goto_idx(st.session_state.idx + 1, df)
         st.rerun()
     if nav_r.button(f"Skip ⟶ ({KEY_SKIP})", use_container_width=True):
-        goto_idx(st.session_state.idx + 1, n_total)
+        goto_idx(st.session_state.idx + 1, df)
         st.rerun()
 
 
